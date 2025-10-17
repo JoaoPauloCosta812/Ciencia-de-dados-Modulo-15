@@ -1,0 +1,6 @@
+streamlit>=1.37.0
+pandas>=2.2.0
+numpy>=1.26.0
+Pillow>=10.0.0
+streamlit-drawable-canvas>=0.9.3
+setuptools>=68.0.0
