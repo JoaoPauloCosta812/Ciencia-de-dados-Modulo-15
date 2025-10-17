@@ -59,43 +59,85 @@ with right_column:
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 
+
+
+
+
+
 st.write("## Testando a aplicação de um quadro desenhavel")
 
-# Specify canvas parameters in application
-drawing_mode = st.sidebar.selectbox(
-    "Drawing tool:", ("point", "freedraw", "line", "rect", "circle", "transform")
+import os
+
+import numpy as np
+import streamlit as st
+from os.path import dirname
+from os.path import join
+import setuptools
+
+
+def readme() -> str:
+    """Utility function to read the README file.
+    Used for the long_description.  It's nice, because now 1) we have a top
+    level README file and 2) it's easier to type in the README file than to put
+    a raw string in below.
+    :return: content of README.md
+    """
+    return open(join(dirname(__file__), "README.md")).read()
+
+
+setuptools.setup(
+    name="streamlit-drawable-canvas",
+    version="0.0.1",
+    author="Fanilo ANDRIANASOLO",
+    author_email="andfanilo@gmail.com",
+    description="A Streamlit custom component for a free drawing canvas using Fabric.js.",
+    long_description=readme(),
+    long_description_content_type="text/plain",
+    url="https://github.com/andfanilo/streamlit-drawable-canvas",
+    packages=setuptools.find_packages(),
+    include_package_data=True,
+    classifiers=[],
+    python_requires=">=3.6",
 )
+_RELEASE = False  # on packaging, pass this to True
 
-stroke_width = st.sidebar.slider("Stroke width: ", 1, 25, 3)
-if drawing_mode == 'point':
-    point_display_radius = st.sidebar.slider("Point display radius: ", 1, 25, 3)
-stroke_color = st.sidebar.color_picker("Stroke color hex: ")
-bg_color = st.sidebar.color_picker("Background color hex: ", "#eee")
-bg_image = st.sidebar.file_uploader("Background image:", type=["png", "jpg"])
+if not _RELEASE:
+    _component_func = st.declare_component("st_canvas", url="http://localhost:3001",)
+else:
+    parent_dir = os.path.dirname(os.path.abspath(__file__))
+    build_dir = os.path.join(parent_dir, "frontend/build")
+    _component_func = st.declare_component("st_canvas", path=build_dir)
 
-realtime_update = st.sidebar.checkbox("Update in realtime", True)
 
-    
-
-# Create a canvas component
-canvas_result = st_canvas(
-    fill_color="rgba(255, 165, 0, 0.3)",  # Fixed fill color with some opacity
-    stroke_width=stroke_width,
-    stroke_color=stroke_color,
-    background_color=bg_color,
-    background_image=Image.open(bg_image) if bg_image else None,
-    update_streamlit=realtime_update,
-    height=150,
-    drawing_mode=drawing_mode,
-    point_display_radius=point_display_radius if drawing_mode == 'point' else 0,
+def st_canvas(
+    brush_width=20,
+    brush_color="black",
+    background_color="#eee",
+    height=400,
+    width=600,
     key="canvas",
-)
+):
+    """ Validate inputs + Post-process image from canvas
+        :param brush_width:
+        :param brush_color:
+        :param background_color:
+        :param height:
+        :param width:
+        :param key:
+        :return: Reshaped image
+        """
+    component_value = _component_func(
+        brush_width=brush_width,
+        brush_color=brush_color,
+        background_color=background_color,
+        height=height,
+        width=width,
+        key=key,
+        default=None,
+    )
+    if component_value is None:
+        return None
 
-# Do something interesting with the image data and paths
-if canvas_result.image_data is not None:
-    st.image(canvas_result.image_data)
-if canvas_result.json_data is not None:
-    objects = pd.json_normalize(canvas_result.json_data["objects"]) # need to convert obj to str because PyArrow
-    for col in objects.select_dtypes(include=['object']).columns:
-        objects[col] = objects[col].astype("str")
-    st.dataframe(objects)
+    w = component_value["width"]
+    h = component_value["height"]
+    return np.reshape(component_value["data"], (h, w, 4))
