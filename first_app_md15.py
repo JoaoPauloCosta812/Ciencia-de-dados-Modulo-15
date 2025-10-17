@@ -124,5 +124,3 @@ if canvas_result.image_data is not None:
         file_name="meu_desenho.png",
         mime="image/png",
     )
-
-st.success("Aplicação carregada com sucesso! 🚀")
